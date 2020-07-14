@@ -362,3 +362,57 @@ pub enum DeviceType {
     Automobile,
     Unknown,
 }
+
+pub enum Scope {
+    AppRemoteControl,
+    PlaylistModifyPrivate,
+    PlaylistModifyPublic,
+    PlaylistReadCollaborative,
+    PlaylistReadPrivate,
+    Streaming,
+    UgcImageUpload,
+    UserFollowRead,
+    UserLibraryModify,
+    UserLibraryRead,
+    UserFollowModify,
+    UserModifyPlaybackState,
+    UserReadCurrentlyPlaying,
+    UserReadEmail,
+    UserReadPlaybackState,
+    UserReadPlaybackPosition,
+    UserReadPrivate,
+    UserReadRecentlyPlayed,
+    UserTopRead,
+}
+
+impl Scope {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Scope::AppRemoteControl => "app-remote-control",
+            Scope::PlaylistModifyPrivate => "playlist-modify-private",
+            Scope::PlaylistModifyPublic => "playlist-modify-public",
+            Scope::PlaylistReadCollaborative => "playlist-read-collaborative",
+            Scope::PlaylistReadPrivate => "playlist-read-private",
+            Scope::Streaming => "streaming",
+            Scope::UgcImageUpload => "ugc-image-upload",
+            Scope::UserFollowRead => "user-follow-read",
+            Scope::UserLibraryModify => "user-library-modify",
+            Scope::UserLibraryRead => "user-library-read",
+            Scope::UserFollowModify => "user-follow-modify",
+            Scope::UserModifyPlaybackState => "user-modify-playback-state",
+            Scope::UserReadCurrentlyPlaying => "user-read-currently-playing",
+            Scope::UserReadEmail => "user-read-email",
+            Scope::UserReadPlaybackState => "user-read-playback-state",
+            Scope::UserReadPlaybackPosition => "user-read-playback-position",
+            Scope::UserReadPrivate => "user-read-private",
+            Scope::UserReadRecentlyPlayed => "user-read-recently-played",
+            Scope::UserTopRead => "user-top-read",
+        }
+    }
+}
+
+impl AsRef<str> for Scope {
+    fn as_ref(&self) -> &'static str {
+        self.as_str()
+    }
+}

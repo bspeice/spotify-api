@@ -1,5 +1,11 @@
 use crate::clock::Clock;
+use std::fmt::Debug;
+use std::fs::OpenOptions;
+use std::io;
+use std::io::{Read, Write};
+use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
+use thiserror::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ClientCredentials {
@@ -44,56 +50,66 @@ impl Token {
     }
 }
 
-pub enum Scope {
-    AppRemoteControl,
-    PlaylistModifyPrivate,
-    PlaylistModifyPublic,
-    PlaylistReadCollaborative,
-    PlaylistReadPrivate,
-    Streaming,
-    UgcImageUpload,
-    UserFollowRead,
-    UserLibraryModify,
-    UserLibraryRead,
-    UserFollowModify,
-    UserModifyPlaybackState,
-    UserReadCurrentlyPlaying,
-    UserReadEmail,
-    UserReadPlaybackState,
-    UserReadPlaybackPosition,
-    UserReadPrivate,
-    UserReadRecentlyPlayed,
-    UserTopRead,
+pub trait TokenCache: Debug {
+    type Error;
+
+    fn current(&self) -> Option<&Token>;
+    fn update(&mut self, token: Token) -> Result<(), Self::Error>;
 }
 
-impl Scope {
-    fn as_str(&self) -> &'static str {
-        match self {
-            Scope::AppRemoteControl => "app-remote-control",
-            Scope::PlaylistModifyPrivate => "playlist-modify-private",
-            Scope::PlaylistModifyPublic => "playlist-modify-public",
-            Scope::PlaylistReadCollaborative => "playlist-read-collaborative",
-            Scope::PlaylistReadPrivate => "playlist-read-private",
-            Scope::Streaming => "streaming",
-            Scope::UgcImageUpload => "ugc-image-upload",
-            Scope::UserFollowRead => "user-follow-read",
-            Scope::UserLibraryModify => "user-library-modify",
-            Scope::UserLibraryRead => "user-library-read",
-            Scope::UserFollowModify => "user-follow-modify",
-            Scope::UserModifyPlaybackState => "user-modify-playback-state",
-            Scope::UserReadCurrentlyPlaying => "user-read-currently-playing",
-            Scope::UserReadEmail => "user-read-email",
-            Scope::UserReadPlaybackState => "user-read-playback-state",
-            Scope::UserReadPlaybackPosition => "user-read-playback-position",
-            Scope::UserReadPrivate => "user-read-private",
-            Scope::UserReadRecentlyPlayed => "user-read-recently-played",
-            Scope::UserTopRead => "user-top-read",
-        }
+#[derive(Debug, Error)]
+pub enum FileCacheError {
+    #[error("")]
+    Io(#[from] io::Error),
+
+    #[error("")]
+    Json(#[from] serde_json::Error),
+}
+
+#[derive(Debug)]
+pub struct FileCache {
+    path: PathBuf,
+    token: Option<Token>,
+}
+
+impl FileCache {
+    pub fn new(path: PathBuf) -> Result<Self, FileCacheError> {
+        // Note: to avoid expressing a preference for a specific runtime, this implementation uses
+        // synchronous I/O.
+
+        // If the file doesn't exist yet, allow creation
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(&path)?;
+
+        let mut token_bytes = Vec::new();
+        file.read_to_end(&mut token_bytes)?;
+
+        // If the file is empty or invalid, don't set the initial ticket
+        let token = serde_json::from_slice(&token_bytes)
+            .map(|t| Some(t))
+            .unwrap_or_default();
+
+        Ok(FileCache { path, token })
     }
 }
 
-impl AsRef<str> for Scope {
-    fn as_ref(&self) -> &'static str {
-        self.as_str()
+impl TokenCache for FileCache {
+    type Error = FileCacheError;
+
+    fn current(&self) -> Option<&Token> {
+        self.token.as_ref()
+    }
+
+    fn update(&mut self, token: Token) -> Result<(), FileCacheError> {
+        let mut file = OpenOptions::new().write(true).open(&self.path)?;
+        let token_bytes = serde_json::to_vec(&token)?;
+
+        file.write_all(&token_bytes)?;
+        self.token.replace(token);
+
+        Ok(())
     }
 }
