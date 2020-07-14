@@ -18,3 +18,13 @@ thiserror = "1.0"
 [features]
 default = ["api"]
 api = ["base64", "http-client", "http-types"]
+
+[dev-dependencies]
+anyhow = "1.0"
+async-std = { version = "1.6", features = ["attributes"] }
+async-h1 = "2.1"
+http-client = "4.0"
+hyper = "0.13"
+structopt = { version = "0.3", default-features = false }
+tokio = { version = "0.2", features = ["full"] }
+webbrowser = "0.5"

@@ -1,7 +1,6 @@
 use super::Result;
 use crate::clock::Clock;
 use crate::oauth::{ClientCredentials, Token};
-use base64::encode;
 use http_client::HttpClient;
 use http_types::headers::AUTHORIZATION;
 use http_types::{Body, Method, Request, StatusCode, Url};
@@ -17,7 +16,7 @@ struct TokenResponse {
 }
 
 impl TokenResponse {
-    fn try_into_token(self, clock: impl Clock) -> Result<Token> {
+    fn try_into_token(self, clock: &impl Clock) -> Result<Token> {
         let refresh_token = self.refresh_token.ok_or(http_types::Error::from_str(
             StatusCode::InternalServerError,
             "no refresh token was provided",
@@ -32,7 +31,7 @@ impl TokenResponse {
         ))
     }
 
-    fn into_token(self, clock: impl Clock, refresh_token: &str) -> Token {
+    fn into_token(self, clock: &impl Clock, refresh_token: &str) -> Token {
         let refresh_token = self
             .refresh_token
             .unwrap_or_else(|| refresh_token.to_owned());
@@ -59,11 +58,8 @@ pub fn authorize_url(
     show_dialog: Option<bool>,
 ) -> Result<http_types::Url> {
     // TODO: This could probably be done without so many intermediate allocations
-    let client_id = format!("&client_id={}", base64::encode(&credentials.client_id));
-    let redirect_uri = format!(
-        "&redirect_uri={}",
-        base64::encode(&credentials.redirect_uri)
-    );
+    let client_id = format!("&client_id={}", &credentials.client_id);
+    let redirect_uri = format!("&redirect_uri={}", &credentials.redirect_uri);
     let state = state.map(|s| format!("&state={}", s)).unwrap_or_default();
     let scope = scope.map(|s| format!("&scope={}", s)).unwrap_or_default();
     let show_dialog = show_dialog
@@ -88,8 +84,8 @@ struct AuthorizeRequestBody<'a> {
 }
 
 pub async fn authorize(
-    client: impl HttpClient,
-    clock: impl Clock,
+    client: &impl HttpClient,
+    clock: &impl Clock,
     credentials: &ClientCredentials,
     code: &str,
 ) -> Result<Token> {
@@ -104,16 +100,17 @@ pub async fn authorize(
     let body = http_types::Body::from_form(&req_body)?;
 
     let mut request = http_types::Request::new(Method::Post, url);
-    let authorization = format!(
-        "Basic {}:{}",
-        base64::encode(&credentials.client_id),
-        base64::encode(&credentials.client_secret)
-    );
+    let client_info = base64::encode(format!(
+        "{}:{}",
+        &credentials.client_id, &credentials.client_secret
+    ));
+    let authorization = format!("Basic {}", client_info);
     request.insert_header(AUTHORIZATION, authorization);
     request.set_body(body);
 
     let mut response: http_client::Response = client.send(request).await?;
-    let token = response.take_body().into_form::<TokenResponse>().await?;
+    let body = response.take_body().into_bytes().await?;
+    let token = serde_json::from_slice::<TokenResponse>(&body)?;
 
     token.try_into_token(clock)
 }
@@ -124,9 +121,9 @@ struct RefreshRequestBody<'a> {
     refresh_token: &'a str,
 }
 
-pub async fn refresh_token(
-    client: impl HttpClient,
-    clock: impl Clock,
+pub async fn refresh(
+    client: &impl HttpClient,
+    clock: &impl Clock,
     credentials: &ClientCredentials,
     token: &Token,
 ) -> Result<Token> {
@@ -134,24 +131,23 @@ pub async fn refresh_token(
     let url = Url::parse("https://accounts.spotify.com/api/token").unwrap();
     let mut req = Request::new(Method::Post, url);
 
-    let b64_id = encode(&credentials.client_id);
-    let b64_secret = encode(&credentials.client_secret);
-    req.insert_header(
-        AUTHORIZATION,
-        format!("{} {}:{}", token.token_type, b64_id, b64_secret),
-    );
+    let client_info = base64::encode(format!(
+        "{}:{}",
+        credentials.client_id, credentials.client_secret
+    ));
+    req.insert_header(AUTHORIZATION, format!("Basic {}", client_info));
 
     let req_body = RefreshRequestBody {
         grant_type: "refresh_token",
         refresh_token: &token.refresh_token,
     };
-    // TODO: Review error policy. Because the crate `Result` type can convert into `http_client::Error`,
-    // and `http_client::Error` can convert from any `std::error::Error`, we can use the try operator here
-    // even though `crate::Error` doesn't explicitly handle these types.
-    req.set_body(Body::from_form(&req_body)?);
+    // UNWRAP: Encoding a form with two string fields guaranteed to succeed
+    // (Specifically, URL-encoding is guaranteed to succeed)
+    req.set_body(Body::from_form(&req_body).unwrap());
 
     let mut resp: http_client::Response = client.send(req).await?;
-    let resp = resp.take_body().into_form::<TokenResponse>().await?;
+    let body = resp.take_body().into_bytes().await?;
+    let resp = serde_json::from_slice::<TokenResponse>(&body)?;
 
     Ok(resp.into_token(clock, &token.refresh_token))
 }

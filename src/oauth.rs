@@ -14,6 +14,16 @@ pub struct ClientCredentials {
     pub redirect_uri: String,
 }
 
+impl ClientCredentials {
+    pub fn new(client_id: String, client_secret: String, redirect_uri: String) -> Self {
+        ClientCredentials {
+            client_id,
+            client_secret,
+            redirect_uri,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Token {
     pub access_token: String,
@@ -27,7 +37,7 @@ pub struct Token {
 
 impl Token {
     pub fn new(
-        clock: impl Clock,
+        clock: &impl Clock,
         access_token: String,
         token_type: String,
         expires_in: u16,

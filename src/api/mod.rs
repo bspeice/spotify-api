@@ -6,6 +6,9 @@ pub mod client;
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("")]
+    Json(#[from] serde_json::Error),
+
+    #[error("")]
     Http(http_client::Error),
 
     #[error("")]
