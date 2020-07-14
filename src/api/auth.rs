@@ -4,37 +4,123 @@ use crate::oauth::{ClientCredentials, Token};
 use base64::encode;
 use http_client::HttpClient;
 use http_types::headers::AUTHORIZATION;
-use http_types::{Body, Method, Request, Url};
+use http_types::{Body, Method, Request, StatusCode, Url};
 
-// The Refresh response looks very similar to a standard `Token`, but because
-// Spotify may exclude the refresh token (indicating it doesn't need to change)
-// it is handled slightly differently.
 #[derive(Debug, Clone, Deserialize)]
-struct RefreshResponse {
+struct TokenResponse {
     access_token: String,
     token_type: String,
     scope: String,
     expires_in: u16,
+    // Optional because refresh responses may not include a new refresh token
     refresh_token: Option<String>,
 }
 
-impl RefreshResponse {
+impl TokenResponse {
+    fn try_into_token(self, clock: impl Clock) -> Result<Token> {
+        let refresh_token = self.refresh_token.ok_or(http_types::Error::from_str(
+            StatusCode::InternalServerError,
+            "no refresh token was provided",
+        ))?;
+        Ok(Token::new(
+            clock,
+            self.access_token,
+            self.token_type,
+            self.expires_in,
+            refresh_token,
+            self.scope,
+        ))
+    }
+
     fn into_token(self, clock: impl Clock, refresh_token: &str) -> Token {
+        let refresh_token = self
+            .refresh_token
+            .unwrap_or_else(|| refresh_token.to_owned());
         Token::new(
             clock,
             self.access_token,
             self.token_type,
             self.expires_in,
-            self.refresh_token
-                .unwrap_or_else(|| refresh_token.to_owned()),
+            refresh_token,
             self.scope,
         )
     }
 }
 
+/// Build the authorization URL to retrieve a Spotify access token.
+///
+/// Users visiting this URL will choose whether to grant your application access. If that access
+/// is granted, users will be redirected according to the `redirect_uri`, and the new URI will
+/// contain a `code` query parameter that can be exchanged for an access token.
+pub fn authorize_url(
+    credentials: &ClientCredentials,
+    state: Option<&str>,
+    scope: Option<&str>,
+    show_dialog: Option<bool>,
+) -> Result<http_types::Url> {
+    // TODO: This could probably be done without so many intermediate allocations
+    let client_id = format!("&client_id={}", base64::encode(&credentials.client_id));
+    let redirect_uri = format!(
+        "&redirect_uri={}",
+        base64::encode(&credentials.redirect_uri)
+    );
+    let state = state.map(|s| format!("&state={}", s)).unwrap_or_default();
+    let scope = scope.map(|s| format!("&scope={}", s)).unwrap_or_default();
+    let show_dialog = show_dialog
+        .map(|s| format!("&show_dialog={}", s))
+        .unwrap_or_default();
+
+    let mut url = "https://accounts.spotify.com/authorize?response_type=code".to_owned();
+    url.push_str(&client_id);
+    url.push_str(&redirect_uri);
+    url.push_str(&state);
+    url.push_str(&scope);
+    url.push_str(&show_dialog);
+
+    http_types::Url::parse(&url).map_err(|e| e.into())
+}
+
+#[derive(Debug, Serialize)]
+struct AuthorizeRequestBody<'a> {
+    grant_type: &'a str,
+    code: &'a str,
+    redirect_uri: &'a str,
+}
+
+pub async fn authorize(
+    client: impl HttpClient,
+    clock: impl Clock,
+    credentials: &ClientCredentials,
+    code: &str,
+) -> Result<Token> {
+    // UNWRAP: Statically-known URL
+    let url = Url::parse("https://accounts.spotify.com/api/token").unwrap();
+
+    let req_body = AuthorizeRequestBody {
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: &credentials.redirect_uri,
+    };
+    let body = http_types::Body::from_form(&req_body)?;
+
+    let mut request = http_types::Request::new(Method::Post, url);
+    let authorization = format!(
+        "Basic {}:{}",
+        base64::encode(&credentials.client_id),
+        base64::encode(&credentials.client_secret)
+    );
+    request.insert_header(AUTHORIZATION, authorization);
+    request.set_body(body);
+
+    let mut response: http_client::Response = client.send(request).await?;
+    let token = response.take_body().into_form::<TokenResponse>().await?;
+
+    token.try_into_token(clock)
+}
+
 #[derive(Debug, Serialize)]
 struct RefreshRequestBody<'a> {
-    grant_body: &'a str,
+    grant_type: &'a str,
     refresh_token: &'a str,
 }
 
@@ -45,7 +131,7 @@ pub async fn refresh_token(
     token: &Token,
 ) -> Result<Token> {
     // UNWRAP: Statically-known URL
-    let url: Url = Url::parse("https://accounts.spotify.com/api/token").unwrap();
+    let url = Url::parse("https://accounts.spotify.com/api/token").unwrap();
     let mut req = Request::new(Method::Post, url);
 
     let b64_id = encode(&credentials.client_id);
@@ -56,7 +142,7 @@ pub async fn refresh_token(
     );
 
     let req_body = RefreshRequestBody {
-        grant_body: "refresh_token",
+        grant_type: "refresh_token",
         refresh_token: &token.refresh_token,
     };
     // TODO: Review error policy. Because the crate `Result` type can convert into `http_client::Error`,
@@ -65,7 +151,7 @@ pub async fn refresh_token(
     req.set_body(Body::from_form(&req_body)?);
 
     let mut resp: http_client::Response = client.send(req).await?;
-    let resp = resp.take_body().into_form::<RefreshResponse>().await?;
+    let resp = resp.take_body().into_form::<TokenResponse>().await?;
 
     Ok(resp.into_token(clock, &token.refresh_token))
 }

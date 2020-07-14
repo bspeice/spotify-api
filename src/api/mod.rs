@@ -7,6 +7,9 @@ pub mod client;
 pub enum Error {
     #[error("")]
     Http(http_client::Error),
+
+    #[error("")]
+    Url(#[from] http_types::url::ParseError),
 }
 
 impl From<http_client::Error> for Error {

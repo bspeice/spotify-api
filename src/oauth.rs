@@ -21,6 +21,7 @@ pub struct Token {
     pub expires_in: u16,
     pub expires_at: u64,
     pub refresh_token: String,
+    // TODO: Should there be a distinction between missing and empty scope?
     pub scope: String,
 }
 
