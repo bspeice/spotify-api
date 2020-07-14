@@ -17,10 +17,12 @@ struct TokenResponse {
 
 impl TokenResponse {
     fn try_into_token(self, clock: &impl Clock) -> Result<Token> {
-        let refresh_token = self.refresh_token.ok_or(http_types::Error::from_str(
-            StatusCode::InternalServerError,
-            "no refresh token was provided",
-        ))?;
+        let refresh_token = self.refresh_token.ok_or_else(|| {
+            http_types::Error::from_str(
+                StatusCode::InternalServerError,
+                "no refresh token was provided",
+            )
+        })?;
         Ok(Token::new(
             clock,
             self.access_token,

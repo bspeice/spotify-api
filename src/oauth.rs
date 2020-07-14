@@ -99,9 +99,7 @@ impl FileCache {
         file.read_to_end(&mut token_bytes)?;
 
         // If the file is empty or invalid, don't set the initial ticket
-        let token = serde_json::from_slice(&token_bytes)
-            .map(|t| Some(t))
-            .unwrap_or_default();
+        let token = serde_json::from_slice(&token_bytes).unwrap_or_default();
 
         Ok(FileCache { path, token })
     }

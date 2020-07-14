@@ -4,6 +4,7 @@ pub trait Clock {
     fn now(&self) -> SystemTime;
 }
 
+#[derive(Debug, Default)]
 pub struct SystemClock {}
 
 impl SystemClock {
