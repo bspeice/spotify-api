@@ -21,9 +21,9 @@ impl<C: HttpClient, T: TokenCache> SpotifyClient<C, T> {
 }
 
 impl<C, T> HttpClient for SpotifyClient<C, T>
-where 
+where
     C: HttpClient,
-    T: 'static + TokenCache + Send + Sync + Unpin 
+    T: 'static + TokenCache + Send + Sync + Unpin,
 {
     fn send(
         &self,
