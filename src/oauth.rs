@@ -22,6 +22,16 @@ impl ClientCredentials {
             redirect_uri,
         }
     }
+
+    #[cfg(feature = "api")]
+    pub fn authorization_header(&self) -> String {
+        // TODO: Is there a material benefit to computing string length ahead of time?
+        // There's one unnecessary string allocation below, but I'm not sure what the
+        // benefit would be given how weird the code would end up looking.
+        let s = format!("{}:{}", self.client_id, self.client_secret);
+        let s = base64::encode(&s);
+        format!("Basic {}", s)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

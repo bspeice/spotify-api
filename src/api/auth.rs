@@ -102,16 +102,11 @@ pub async fn authorize(
     let body = http_types::Body::from_form(&req_body)?;
 
     let mut request = http_types::Request::new(Method::Post, url);
-    let client_info = base64::encode(format!(
-        "{}:{}",
-        &credentials.client_id, &credentials.client_secret
-    ));
-    let authorization = format!("Basic {}", client_info);
-    request.insert_header(AUTHORIZATION, authorization);
+    request.insert_header(AUTHORIZATION, credentials.authorization_header());
     request.set_body(body);
 
     let mut response: http_client::Response = client.send(request).await?;
-    let body = response.take_body().into_bytes().await?;
+    let body = response.body_bytes().await?;
     let token = serde_json::from_slice::<TokenResponse>(&body)?;
 
     token.try_into_token(clock)
@@ -132,12 +127,7 @@ pub async fn refresh(
     // UNWRAP: Statically-known URL
     let url = Url::parse("https://accounts.spotify.com/api/token").unwrap();
     let mut req = Request::new(Method::Post, url);
-
-    let client_info = base64::encode(format!(
-        "{}:{}",
-        credentials.client_id, credentials.client_secret
-    ));
-    req.insert_header(AUTHORIZATION, format!("Basic {}", client_info));
+    req.insert_header(AUTHORIZATION, credentials.authorization_header());
 
     let req_body = RefreshRequestBody {
         grant_type: "refresh_token",
@@ -148,7 +138,7 @@ pub async fn refresh(
     req.set_body(Body::from_form(&req_body).unwrap());
 
     let mut resp: http_client::Response = client.send(req).await?;
-    let body = resp.take_body().into_bytes().await?;
+    let body = resp.body_bytes().await?;
     let resp = serde_json::from_slice::<TokenResponse>(&body)?;
 
     Ok(resp.into_token(clock, &token.refresh_token))

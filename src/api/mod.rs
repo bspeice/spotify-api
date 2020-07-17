@@ -1,7 +1,10 @@
 use thiserror::Error;
 
+pub mod albums;
 pub mod auth;
 pub mod client;
+
+pub use client::SpotifyClient;
 
 #[derive(Debug, Error)]
 pub enum Error {
