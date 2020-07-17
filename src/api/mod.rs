@@ -3,6 +3,7 @@ use thiserror::Error;
 pub mod albums;
 pub mod auth;
 pub mod client;
+pub mod pager;
 
 pub use client::SpotifyClient;
 
