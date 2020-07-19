@@ -12,7 +12,28 @@ pub struct Page<T> {
     pub total: u32,
 }
 
-// TODO: IntoStream implementation to collect pages
+#[cfg(feature = "api")]
+mod pager {
+    use crate::api::SpotifyClient;
+    use crate::api::pager::Pager;
+    use crate::model::page::Page;
+    use crate::Result;
+    use http_types::Url;
+
+    impl<T: Unpin> Page<T> {
+        pub fn into_stream<'a, C: SpotifyClient>(
+            self,
+            client: &'a C,
+        ) -> Result<Pager<'a, C, T>> {
+            let next = if let Some(next) = self.next {
+                Some(Url::parse(&next)?)
+            } else {
+                None
+            };
+            Ok(Pager::with_items(client, self.items, next))
+        }
+    }
+}
 
 /// cursor based page
 ///[cursor based paging object](https://developer.spotify.com/web-api/object-model/#cursor-based-paging-object)

@@ -6,10 +6,10 @@ use futures::ready;
 use futures::stream::Stream;
 use http_types::{Method, Request, Url};
 use serde::de::DeserializeOwned;
-use std::cmp::max;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
+// TODO: Turn `BodyFuture` into a first-class future "DeserializeBody" future
 type BodyFuture<'a> = BoxFuture<'a, Result<Vec<u8>>>;
 
 fn poll_next<'a, T>(
@@ -70,25 +70,23 @@ pub struct Pager<'a, C, T> {
 }
 
 impl<'a, C, T> Pager<'a, C, T> {
-    pub(crate) fn new(client: &'a C, next: Url) -> Self {
-        let limit_default = 50;
-        let limit_query = next
-            .query_pairs()
-            .map(|(name, value)| {
-                if name == "limit" {
-                    value.parse::<usize>().unwrap_or(0)
-                } else {
-                    0
-                }
-            })
-            .sum();
-        let limit = max(limit_default, limit_query);
+    pub(crate) fn new(client: &'a C, next: Option<Url>) -> Self {
 
+        // TODO: Smarter capacity hint
         Self {
             client,
             req: None,
-            items: Vec::with_capacity(limit),
-            next: Some(next),
+            items: Vec::with_capacity(50),
+            next: next,
+        }
+    }
+
+    pub(crate) fn with_items(client: &'a C, items: Vec<T>, next: Option<Url>) -> Self {
+        Self {
+            client,
+            req: None,
+            items,
+            next
         }
     }
 }
