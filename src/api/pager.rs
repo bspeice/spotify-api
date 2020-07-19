@@ -1,4 +1,4 @@
-use crate::api::SpotifyClient;
+use crate::api::client::{SpotifyClient, ClientExt};
 use crate::model::page::Page;
 use crate::Result;
 use futures::future::BoxFuture;
@@ -8,14 +8,14 @@ use http_types::{Method, Request, Url};
 use serde::de::DeserializeOwned;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use std::mem::swap;
 
-// TODO: Turn `BodyFuture` into a first-class future "DeserializeBody" future
-type BodyFuture<'a> = BoxFuture<'a, Result<Vec<u8>>>;
+type BodyFuture<'a, T> = BoxFuture<'a, Result<T>>;
 
 fn poll_next<'a, T>(
     cx: &mut Context<'_>,
     client: &'a impl SpotifyClient,
-    req: &mut Option<BodyFuture<'a>>,
+    req: &mut Option<BodyFuture<'a, Page<T>>>,
     items: &mut Vec<T>,
     next: &mut Option<Url>,
 ) -> Poll<Option<Result<T>>>
@@ -25,10 +25,7 @@ where
     loop {
         // If we have a request in progress, check to see if it's complete
         if let Some(ref mut f) = req {
-            let resp = ready!(f.as_mut().poll(cx))?;
-
-            // Request has completed, attempt to parse out the page
-            let mut page = serde_json::from_slice::<Page<T>>(&resp)?;
+            let mut page = ready!(f.as_mut().poll(cx))?;
 
             // Save the `next` URL for future use. This captures the `limit` and `offset`
             // params for us, so no worries about remembering those.
@@ -37,9 +34,7 @@ where
             }
 
             // Queue all items, and fall through to returning them individually
-            for item in page.items.drain(..) {
-                items.push(item);
-            }
+            swap(items, &mut page.items);
         }
 
         // Check if we have a buffered item
@@ -50,11 +45,11 @@ where
         if let Some(next) = next.take() {
             // If we're out of buffered items, start the next request
             let next_req = Request::new(Method::Get, next);
-            let f = Box::pin(async move {
-                let mut resp = client.send_authorized(next_req).await?;
-                Ok(resp.body_bytes().await?)
-            });
+            let f = client
+                .send_authorized(next_req)
+                .deserialize_response::<Page<T>>();
             req.replace(f);
+            // Fall through to looping and checking the request future
         } else {
             // Otherwise, we can't make a request, we're done
             return Poll::Ready(None);
@@ -64,19 +59,19 @@ where
 
 pub struct Pager<'a, C, T> {
     client: &'a C,
-    req: Option<BodyFuture<'a>>,
+    req: Option<BodyFuture<'a, Page<T>>>,
     items: Vec<T>,
     next: Option<Url>,
 }
 
 impl<'a, C, T> Pager<'a, C, T> {
     pub(crate) fn new(client: &'a C, next: Option<Url>) -> Self {
-
-        // TODO: Smarter capacity hint
+        // Note: because we move the page items to our storage, adding a size hint based on the
+        // limit param doesn't improve performance.
         Self {
             client,
             req: None,
-            items: Vec::with_capacity(50),
+            items: Vec::new(),
             next: next,
         }
     }
@@ -86,7 +81,7 @@ impl<'a, C, T> Pager<'a, C, T> {
             client,
             req: None,
             items,
-            next
+            next,
         }
     }
 }

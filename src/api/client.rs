@@ -1,7 +1,9 @@
 use futures::future::BoxFuture;
 use http_client::HttpClient;
+use serde::de::DeserializeOwned;
 
 use crate::oauth::TokenCache;
+use crate::Error;
 
 pub type HttpClientResult = Result<http_client::Response, http_client::Error>;
 pub type HttpClientFuture = BoxFuture<'static, HttpClientResult>;
@@ -12,6 +14,28 @@ pub type HttpClientFuture = BoxFuture<'static, HttpClientResult>;
 pub trait SpotifyClient: HttpClient {
     fn send_authorized(&self, req: http_client::Request) -> HttpClientFuture;
 }
+
+pub trait ClientExt {
+    fn deserialize_response<T: DeserializeOwned>(self) -> BoxFuture<'static, Result<T, Error>>;
+    // TODO: `Result<Page<T>, Error>` into `Pager<T>`
+}
+
+impl ClientExt for BoxFuture<'static, HttpClientResult> {
+    fn deserialize_response<T: DeserializeOwned>(self) -> BoxFuture<'static, Result<T, Error>> {
+        // NOTE: While I'd normally rather implement this as a first-class Future
+        // instead of allocating with `Box::pin()`, because `Request.body_bytes()`
+        // is an opaque future, we'd have to allocate a `Box::pin()` anyway to get
+        // access to the internal bytes.
+        // Ultimately: this has exactly the same allocations as writing a manual
+        // `impl Future`, so might as well use the easier syntax.
+        Box::pin(async move {
+            let mut resp: http_client::Response = self.await?;
+            let body = resp.body_bytes().await?;
+            serde_json::from_slice::<T>(&body).map_err(|e| e.into())
+        })
+    }
+}
+
 
 /// HTTP client for interactions with Spotify. Handles authorization, API timeout, etc.
 #[derive(Debug)]

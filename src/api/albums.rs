@@ -1,9 +1,10 @@
+use crate::api::client::ClientExt;
 use crate::api::SpotifyClient;
 use crate::model::album::FullAlbum;
 use crate::model::page::Page;
 use crate::model::track::SimplifiedTrack;
 use crate::Result;
-use http_types::{Method, Request, Response, Url};
+use http_types::{Method, Request, Url};
 
 pub async fn album_with_options(
     client: &impl SpotifyClient,
@@ -17,9 +18,10 @@ pub async fn album_with_options(
     }
 
     let req = Request::new(Method::Get, url);
-    let mut resp: Response = client.send_authorized(req).await?;
-    let resp_bytes = resp.body_bytes().await?;
-    serde_json::from_slice::<FullAlbum>(&resp_bytes).map_err(|e| e.into())
+    client
+        .send_authorized(req)
+        .deserialize_response::<FullAlbum>()
+        .await
 }
 
 pub async fn album(client: &impl SpotifyClient, id: &str) -> Result<FullAlbum> {
@@ -32,7 +34,8 @@ pub async fn album_tracks<C: SpotifyClient>(
 ) -> Result<Page<SimplifiedTrack>> {
     let url = Url::parse(&format!("https://api.spotify.com/v1/albums/{}/tracks", id))?;
     let req = Request::new(Method::Get, url);
-    let mut resp: Response = client.send_authorized(req).await?;
-    let resp_bytes = resp.body_bytes().await?;
-    serde_json::from_slice::<Page<SimplifiedTrack>>(&resp_bytes).map_err(|e| e.into())
+    client
+        .send_authorized(req)
+        .deserialize_response::<Page<SimplifiedTrack>>()
+        .await
 }

@@ -14,17 +14,14 @@ pub struct Page<T> {
 
 #[cfg(feature = "api")]
 mod pager {
-    use crate::api::SpotifyClient;
     use crate::api::pager::Pager;
+    use crate::api::SpotifyClient;
     use crate::model::page::Page;
     use crate::Result;
     use http_types::Url;
 
     impl<T: Unpin> Page<T> {
-        pub fn into_stream<'a, C: SpotifyClient>(
-            self,
-            client: &'a C,
-        ) -> Result<Pager<'a, C, T>> {
+        pub fn into_stream<'a, C: SpotifyClient>(self, client: &'a C) -> Result<Pager<'a, C, T>> {
             let next = if let Some(next) = self.next {
                 Some(Url::parse(&next)?)
             } else {
