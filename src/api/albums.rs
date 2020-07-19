@@ -1,5 +1,7 @@
+use crate::api::pager::Pager;
 use crate::api::SpotifyClient;
 use crate::model::album::FullAlbum;
+use crate::model::track::SimplifiedTrack;
 use crate::Result;
 use http_types::{Method, Request, Response, Url};
 
@@ -22,4 +24,12 @@ pub async fn album_with_options(
 
 pub async fn album(client: &impl SpotifyClient, id: &str) -> Result<FullAlbum> {
     album_with_options(client, id, None).await
+}
+
+pub fn album_tracks<'a, C: SpotifyClient>(
+    client: &'a C,
+    id: &str,
+) -> Result<Pager<'a, C, SimplifiedTrack>> {
+    let url = Url::parse(&format!("https://api.spotify.com/v1/albums/{}/tracks", id))?;
+    Ok(Pager::new(client, url))
 }

@@ -44,7 +44,7 @@ where
     C: HttpClient,
     T: 'static + TokenCache + Send + Sync + Unpin,
 {
-    fn send_authorized(&self, req: http_client::Request) -> HttpClientFuture {
+    fn send_authorized(&self, _req: http_client::Request) -> HttpClientFuture {
         todo!()
     }
 }
