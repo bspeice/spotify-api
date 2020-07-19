@@ -40,21 +40,21 @@ where
             swap(items, &mut page.items);
         }
 
-        // Check if we have a buffered item
+        // Return the next item if there are any available
         if !items.is_empty() {
             return Poll::Ready(Some(Ok(items.remove(0))));
         }
 
         if let Some(next) = next.take() {
-            // If we're out of buffered items, start the next request
+            // No items available, so start the next request and fall through to loop around and
+            // poll it
             let next_req = Request::new(Method::Get, next);
             let f = client
                 .send_authorized(next_req)
                 .deserialize_response::<Page<T>>();
             req.replace(f);
-        // Fall through to looping and checking the request future
         } else {
-            // Otherwise, we can't make a request, we're done
+            // No future requests to make, this stream has ended
             return Poll::Ready(None);
         }
     }
