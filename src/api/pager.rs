@@ -1,4 +1,4 @@
-use crate::api::client::{SpotifyClient, ClientExt};
+use crate::api::client::{ClientExt, SpotifyClient};
 use crate::model::page::Page;
 use crate::Result;
 use futures::future::BoxFuture;
@@ -6,9 +6,9 @@ use futures::ready;
 use futures::stream::Stream;
 use http_types::{Method, Request, Url};
 use serde::de::DeserializeOwned;
+use std::mem::swap;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use std::mem::swap;
 
 type BodyFuture<'a, T> = BoxFuture<'a, Result<T>>;
 
@@ -49,7 +49,7 @@ where
                 .send_authorized(next_req)
                 .deserialize_response::<Page<T>>();
             req.replace(f);
-            // Fall through to looping and checking the request future
+        // Fall through to looping and checking the request future
         } else {
             // Otherwise, we can't make a request, we're done
             return Poll::Ready(None);
@@ -65,17 +65,6 @@ pub struct Pager<'a, C, T> {
 }
 
 impl<'a, C, T> Pager<'a, C, T> {
-    pub(crate) fn new(client: &'a C, next: Option<Url>) -> Self {
-        // Note: because we move the page items to our storage, adding a size hint based on the
-        // limit param doesn't improve performance.
-        Self {
-            client,
-            req: None,
-            items: Vec::new(),
-            next: next,
-        }
-    }
-
     pub(crate) fn with_items(client: &'a C, items: Vec<T>, next: Option<Url>) -> Self {
         Self {
             client,

@@ -13,9 +13,8 @@ pub async fn album_with_options(
 ) -> Result<FullAlbum> {
     let url = format!("https://api.spotify.com/v1/albums/{}", id);
     let mut url = Url::parse(&url)?;
-    if let Some(m) = market {
-        url.set_query(Some(&format!("market={}", m)));
-    }
+
+    set_query_param!(url, market);
 
     let req = Request::new(Method::Get, url);
     client
@@ -28,14 +27,26 @@ pub async fn album(client: &impl SpotifyClient, id: &str) -> Result<FullAlbum> {
     album_with_options(client, id, None).await
 }
 
-pub async fn album_tracks<C: SpotifyClient>(
+pub async fn album_tracks_with_options(
     client: &impl SpotifyClient,
     id: &str,
+    limit: Option<usize>,
+    offset: Option<usize>,
+    market: Option<&str>,
 ) -> Result<Page<SimplifiedTrack>> {
-    let url = Url::parse(&format!("https://api.spotify.com/v1/albums/{}/tracks", id))?;
+    let mut url = Url::parse(&format!("https://api.spotify.com/v1/albums/{}/tracks", id))?;
+
+    set_query_param!(url, limit);
+    set_query_param!(url, offset);
+    set_query_param!(url, market);
+
     let req = Request::new(Method::Get, url);
     client
         .send_authorized(req)
         .deserialize_response::<Page<SimplifiedTrack>>()
         .await
+}
+
+pub async fn album_tracks(client: &impl SpotifyClient, id: &str) -> Result<Page<SimplifiedTrack>> {
+    album_tracks_with_options(client, id, None, None, None).await
 }

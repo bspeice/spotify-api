@@ -17,7 +17,6 @@ pub trait SpotifyClient: HttpClient {
 
 pub trait ClientExt {
     fn deserialize_response<T: DeserializeOwned>(self) -> BoxFuture<'static, Result<T, Error>>;
-    // TODO: `Result<Page<T>, Error>` into `Pager<T>`
 }
 
 impl ClientExt for BoxFuture<'static, HttpClientResult> {
@@ -35,7 +34,6 @@ impl ClientExt for BoxFuture<'static, HttpClientResult> {
         })
     }
 }
-
 
 /// HTTP client for interactions with Spotify. Handles authorization, API timeout, etc.
 #[derive(Debug)]

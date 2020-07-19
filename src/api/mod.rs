@@ -1,5 +1,22 @@
 use thiserror::Error;
 
+// Set a URL parameter using the parameter name as its value.
+// 
+// ```rust
+// use http_types::Url;
+// let mut url = Url::parse("https://google.com/").unwrap();
+// let param = "my_value";
+// set_query_param!(url, param);
+// assert_eq!(url.as_str(), "https://google.com/?param=my_value")
+// ```
+macro_rules! set_query_param {
+    ($url:expr, $param:ident) => {
+        if let Some($param) = $param {
+            $url.set_query(Some(&format!(concat!(stringify!($param), "={}"), $param)))
+        }
+    };
+}
+
 pub mod albums;
 pub mod auth;
 pub mod client;
