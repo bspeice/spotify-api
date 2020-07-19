@@ -17,7 +17,7 @@ struct TokenResponse {
 }
 
 impl TokenResponse {
-    fn try_into_token(self, clock: &impl Clock) -> Result<Token> {
+    fn try_into_token<C: Clock + ?Sized>(self, clock: &C) -> Result<Token> {
         let refresh_token = self.refresh_token.ok_or_else(|| {
             http_types::Error::from_str(
                 StatusCode::InternalServerError,
@@ -34,7 +34,7 @@ impl TokenResponse {
         ))
     }
 
-    fn into_token(self, clock: &impl Clock, refresh_token: &str) -> Token {
+    fn into_token<C: Clock + ?Sized>(self, clock: &C, refresh_token: &str) -> Token {
         let refresh_token = self
             .refresh_token
             .unwrap_or_else(|| refresh_token.to_owned());

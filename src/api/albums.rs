@@ -6,8 +6,8 @@ use crate::model::track::SimplifiedTrack;
 use crate::Result;
 use http_types::{Method, Request, Url};
 
-pub async fn album_with_options(
-    client: &impl SpotifyClient,
+pub async fn album_with_options<C: SpotifyClient + ?Sized>(
+    client: &C,
     id: &str,
     market: Option<&str>,
 ) -> Result<FullAlbum> {
@@ -23,12 +23,12 @@ pub async fn album_with_options(
         .await
 }
 
-pub async fn album(client: &impl SpotifyClient, id: &str) -> Result<FullAlbum> {
+pub async fn album<C: SpotifyClient + ?Sized>(client: &C, id: &str) -> Result<FullAlbum> {
     album_with_options(client, id, None).await
 }
 
-pub async fn album_tracks_with_options(
-    client: &impl SpotifyClient,
+pub async fn album_tracks_with_options<C: SpotifyClient + ?Sized>(
+    client: &C,
     id: &str,
     limit: Option<usize>,
     offset: Option<usize>,
@@ -47,6 +47,9 @@ pub async fn album_tracks_with_options(
         .await
 }
 
-pub async fn album_tracks(client: &impl SpotifyClient, id: &str) -> Result<Page<SimplifiedTrack>> {
+pub async fn album_tracks<C: SpotifyClient + ?Sized>(
+    client: &C,
+    id: &str,
+) -> Result<Page<SimplifiedTrack>> {
     album_tracks_with_options(client, id, None, None, None).await
 }

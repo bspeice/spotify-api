@@ -12,14 +12,15 @@ use std::task::{Context, Poll};
 
 type BodyFuture<'a, T> = BoxFuture<'a, Result<T>>;
 
-fn poll_next<'a, T>(
+fn poll_next<'a, C, T>(
     cx: &mut Context<'_>,
-    client: &'a impl SpotifyClient,
+    client: &'a C,
     req: &mut Option<BodyFuture<'a, Page<T>>>,
     items: &mut Vec<T>,
     next: &mut Option<Url>,
 ) -> Poll<Option<Result<T>>>
 where
+    C: SpotifyClient + ?Sized,
     T: DeserializeOwned,
 {
     loop {
@@ -60,14 +61,14 @@ where
     }
 }
 
-pub struct Pager<'a, C, T> {
+pub struct Pager<'a, C: ?Sized, T> {
     client: &'a C,
     req: Option<BodyFuture<'a, Page<T>>>,
     items: Vec<T>,
     next: Option<Url>,
 }
 
-impl<'a, C, T> Pager<'a, C, T> {
+impl<'a, C: ?Sized, T> Pager<'a, C, T> {
     pub(crate) fn with_items(client: &'a C, items: Vec<T>, next: Option<Url>) -> Self {
         Self {
             client,
@@ -80,7 +81,7 @@ impl<'a, C, T> Pager<'a, C, T> {
 
 impl<'a, C, T> Stream for Pager<'a, C, T>
 where
-    C: SpotifyClient,
+    C: SpotifyClient + ?Sized,
     T: DeserializeOwned + Unpin,
 {
     type Item = Result<T>;

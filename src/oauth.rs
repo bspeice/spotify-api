@@ -46,8 +46,8 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn new(
-        clock: &impl Clock,
+    pub fn new<C: Clock + ?Sized>(
+        clock: &C,
         access_token: String,
         token_type: String,
         expires_in: u16,
