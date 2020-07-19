@@ -1,5 +1,8 @@
+use futures::future::ready;
 use futures::future::BoxFuture;
 use http_client::HttpClient;
+use http_types::headers::AUTHORIZATION;
+use http_types::StatusCode;
 use serde::de::DeserializeOwned;
 
 use crate::oauth::TokenCache;
@@ -29,13 +32,14 @@ impl ClientExt for BoxFuture<'static, HttpClientResult> {
         // `impl Future`, so might as well use the easier syntax.
         Box::pin(async move {
             let mut resp: http_client::Response = self.await?;
-            let body = resp.body_bytes().await?;
-            serde_json::from_slice::<T>(&body).map_err(|e| e.into())
+            let body = resp.body_string().await?;
+            println!("{}", body);
+            serde_json::from_slice::<T>(&body.as_bytes()).map_err(|e| e.into())
         })
     }
 }
 
-/// HTTP client for interactions with Spotify. Handles authorization, API timeout, etc.
+/// HTTP client for interactions with Spotify. Handles authorization header
 #[derive(Debug)]
 pub struct BasicSpotifyClient<C, T> {
     client: C,
@@ -66,7 +70,20 @@ where
     C: HttpClient,
     T: 'static + TokenCache + Send + Sync + Unpin,
 {
-    fn send_authorized(&self, _req: http_client::Request) -> HttpClientFuture {
-        todo!()
+    fn send_authorized(&self, mut req: http_client::Request) -> HttpClientFuture {
+        let token = match self.token_cache.current() {
+            Some(t) => t,
+            None => return Box::pin(ready(Err(http_client::Error::from_str(
+                StatusCode::BadRequest,
+                "client asked to perform an authorized request, but no access token was available",
+            )))),
+        };
+        let access_token: &str = token.access_token.as_ref();
+        let auth = format!("Bearer {}", access_token);
+        req.insert_header(AUTHORIZATION, auth);
+
+        self.send(req)
     }
 }
+
+// TODO: Add a client that can handle access token refresh, timeout, etc.

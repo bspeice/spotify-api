@@ -27,6 +27,9 @@ where
         if let Some(ref mut f) = req {
             let mut page = ready!(f.as_mut().poll(cx))?;
 
+            // If we've finished, drop the current request Future so we don't attempt to re-poll
+            req.take();
+
             // Save the `next` URL for future use. This captures the `limit` and `offset`
             // params for us, so no worries about remembering those.
             if let Some(n) = page.next {

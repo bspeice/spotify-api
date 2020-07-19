@@ -1,4 +1,5 @@
 use super::Result;
+use crate::api::client::ClientExt;
 use crate::clock::Clock;
 use crate::oauth::{ClientCredentials, Token};
 use http_client::HttpClient;
@@ -105,11 +106,11 @@ pub async fn authorize(
     request.insert_header(AUTHORIZATION, credentials.authorization_header());
     request.set_body(body);
 
-    let mut response: http_client::Response = client.send(request).await?;
-    let body = response.body_bytes().await?;
-    let token = serde_json::from_slice::<TokenResponse>(&body)?;
-
-    token.try_into_token(clock)
+    client
+        .send(request)
+        .deserialize_response::<TokenResponse>()
+        .await?
+        .try_into_token(clock)
 }
 
 #[derive(Debug, Serialize)]
@@ -137,9 +138,9 @@ pub async fn refresh(
     // (Specifically, URL-encoding is guaranteed to succeed)
     req.set_body(Body::from_form(&req_body).unwrap());
 
-    let mut resp: http_client::Response = client.send(req).await?;
-    let body = resp.body_bytes().await?;
-    let resp = serde_json::from_slice::<TokenResponse>(&body)?;
-
-    Ok(resp.into_token(clock, &token.refresh_token))
+    client
+        .send(req)
+        .deserialize_response::<TokenResponse>()
+        .await
+        .map(|t| t.into_token(clock, &token.refresh_token))
 }

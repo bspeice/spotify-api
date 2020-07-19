@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 // Set a URL parameter using the parameter name as its value.
-// 
+//
 // ```rust
 // use http_types::Url;
 // let mut url = Url::parse("https://google.com/").unwrap();
@@ -31,6 +31,9 @@ pub enum Error {
 
     #[error("")]
     Http(http_client::Error),
+
+    #[error("client was asked to send an authorized request, but no token was available")]
+    MissingToken,
 
     #[error("")]
     Url(#[from] http_types::url::ParseError),
