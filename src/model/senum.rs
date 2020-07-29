@@ -1,7 +1,9 @@
-//! All enums for rspotify
+use super::show;
+use super::track;
 use std::error;
 use std::fmt;
 use std::str::FromStr;
+
 #[derive(Clone, Debug)]
 pub struct Error {
     kind: ErrorKind,
@@ -415,4 +417,11 @@ impl AsRef<str> for Scope {
     fn as_ref(&self) -> &'static str {
         self.as_str()
     }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum PlayingItem {
+    Track(track::FullTrack),
+    Episode(show::FullEpisode),
 }

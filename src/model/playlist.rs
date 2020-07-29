@@ -4,10 +4,10 @@ use std::collections::HashMap;
 
 use super::image::Image;
 use super::page::Page;
+use super::senum::Type;
 use super::timestamp::Timestamp;
 use super::track::FullTrack;
 use super::user::PublicUser;
-use crate::senum::Type;
 ///[playlist object simplified](https://developer.spotify.com/web-api/object-model/#playlist-object-simplified)
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SimplifiedPlaylist {

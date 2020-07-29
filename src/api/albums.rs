@@ -1,10 +1,11 @@
 use crate::api::client::ClientExt;
 use crate::api::SpotifyClient;
-use crate::model::album::FullAlbum;
+use crate::model::album::{FullAlbum, FullAlbums};
 use crate::model::page::Page;
 use crate::model::track::SimplifiedTrack;
 use crate::Result;
 use http_types::{Method, Request, Url};
+use std::borrow::Borrow;
 
 pub async fn album_with_options<C: SpotifyClient + ?Sized>(
     client: &C,
@@ -17,10 +18,7 @@ pub async fn album_with_options<C: SpotifyClient + ?Sized>(
     set_query_param!(url, market);
 
     let req = Request::new(Method::Get, url);
-    client
-        .send_authorized(req)
-        .deserialize_response::<FullAlbum>()
-        .await
+    client.send_authorized(req).deserialize_response().await
 }
 
 pub async fn album<C: SpotifyClient + ?Sized>(client: &C, id: &str) -> Result<FullAlbum> {
@@ -41,10 +39,7 @@ pub async fn album_tracks_with_options<C: SpotifyClient + ?Sized>(
     set_query_param!(url, market);
 
     let req = Request::new(Method::Get, url);
-    client
-        .send_authorized(req)
-        .deserialize_response::<Page<SimplifiedTrack>>()
-        .await
+    client.send_authorized(req).deserialize_response().await
 }
 
 pub async fn album_tracks<C: SpotifyClient + ?Sized>(
@@ -52,4 +47,25 @@ pub async fn album_tracks<C: SpotifyClient + ?Sized>(
     id: &str,
 ) -> Result<Page<SimplifiedTrack>> {
     album_tracks_with_options(client, id, None, None, None).await
+}
+
+pub async fn albums_with_options<C: SpotifyClient + ?Sized, B: Borrow<str>>(
+    client: &C,
+    ids: &[B],
+    market: Option<&str>,
+) -> Result<FullAlbums> {
+    // TODO: reject if more than 20 IDs? Or let the users handle that?
+    let mut url = Url::parse(&format!("https://api.spotify.com/v1/albums"))?;
+    set_query_param!(url, market);
+    set_query_param_joined!(url, ids);
+
+    let req = Request::new(Method::Get, url);
+    client.send_authorized(req).deserialize_response().await
+}
+
+pub async fn albums<C: SpotifyClient + ?Sized, B: Borrow<str>>(
+    client: &C,
+    ids: &[B],
+) -> Result<FullAlbums> {
+    albums_with_options(client, ids, None).await
 }

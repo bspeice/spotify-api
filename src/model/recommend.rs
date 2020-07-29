@@ -21,6 +21,8 @@ pub struct RecommendationsSeed {
     pub type_: RecommendationsSeedType,
 }
 
+// TODO: The Spotify API returns these as lowercase.
+// Do we need a custom deserialize from implementation?
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum RecommendationsSeedType {
     #[serde(rename = "ARTIST")]

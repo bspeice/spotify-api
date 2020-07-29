@@ -4,7 +4,6 @@ extern crate serde_derive;
 pub mod clock;
 pub mod model;
 pub mod oauth;
-pub mod senum;
 
 #[cfg(feature = "api")]
 pub mod api;

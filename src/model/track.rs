@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use super::album::Restrictions;
 use super::album::SimplifiedAlbum;
 use super::artist::SimplifiedArtist;
+use super::senum::Type;
 use super::timestamp::Timestamp;
-use crate::senum::Type;
 
 ///[track object full](https://developer.spotify.com/web-api/object-model/#track-object-full)
 #[derive(Clone, Debug, Serialize, Deserialize)]

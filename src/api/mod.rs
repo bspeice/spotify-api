@@ -17,12 +17,23 @@ macro_rules! set_query_param {
     };
 }
 
+macro_rules! set_query_param_joined {
+    ($url:expr, $param:ident) => {
+        if !$param.is_empty() {
+            let value = $param.join(",");
+            $url.set_query(Some(&format!(concat!(stringify!($param), "={}"), value)))
+        }
+    };
+}
+
 pub mod albums;
+pub mod artists;
 pub mod auth;
+pub mod browse;
 pub mod client;
 pub mod pager;
 
-pub use client::SpotifyClient;
+pub use client::{ClientExt, SpotifyClient};
 
 #[derive(Debug, Error)]
 pub enum Error {

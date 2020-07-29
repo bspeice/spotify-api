@@ -5,9 +5,9 @@ use std::collections::HashMap;
 use super::artist::SimplifiedArtist;
 use super::image::Image;
 use super::page::Page;
+use super::senum::{AlbumType, Type};
 use super::timestamp::Timestamp;
 use super::track::SimplifiedTrack;
-use crate::senum::{AlbumType, Type};
 
 ///[link to album object simplified](https://developer.spotify.com/web-api/object-model/#album-object-simplified)
 /// Simplified Album Object
@@ -72,9 +72,9 @@ pub struct FullAlbums {
 }
 
 ///[link to get list new releases](https://developer.spotify.com/web-api/get-list-new-releases/)
-/// Simplified Albums wrapped by Page object
+/// Note that despite Spotify's claims to include a "message" attribute, it doesn't actually exist.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PageSimpliedAlbums {
+pub struct NewReleases {
     pub albums: Page<SimplifiedAlbum>,
 }
 

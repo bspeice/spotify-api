@@ -2,9 +2,9 @@
 use std::collections::HashMap;
 
 use super::device::Device;
+use super::senum::PlayingItem;
+use super::senum::{CurrentlyPlayingType, DisallowKey, RepeatState, Type};
 use super::track::FullTrack;
-use super::PlayingItem;
-use crate::senum::{CurrentlyPlayingType, DisallowKey, RepeatState, Type};
 /// Context object
 ///[get the users currently playing track](https://developer.spotify.com/web-api/get-the-users-currently-playing-track/)
 #[derive(Clone, Debug, Serialize, Deserialize)]
