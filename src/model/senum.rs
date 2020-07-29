@@ -1,44 +1,14 @@
 use super::show;
 use super::track;
-use std::error;
-use std::fmt;
 use std::str::FromStr;
+use thiserror::Error;
 
-#[derive(Clone, Debug)]
-pub struct Error {
-    kind: ErrorKind,
-}
-impl Error {
-    pub(crate) fn new(kind: ErrorKind) -> Error {
-        Error { kind }
-    }
+#[derive(Debug, Error)]
+#[error("unrecognized enum value {0}")]
+pub struct Unrecognized(String);
 
-    /// Return the kind of this error.
-    pub fn kind(&self) -> &ErrorKind {
-        &self.kind
-    }
-}
-/// The kind of an error that can occur.
-#[derive(Clone, Debug)]
-pub enum ErrorKind {
-    /// This error occurs when no proper enum was found.
-    NoEnum(String),
-}
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        match self.kind {
-            ErrorKind::NoEnum(_) => "no proper enum was found",
-        }
-    }
-}
+// TODO: Instead of implementing an `as_str` method, would `AsRef<str>` make more sense?
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.kind {
-            ErrorKind::NoEnum(ref s) => write!(f, "can't find proper enum of `{:?}`", s),
-        }
-    }
-}
 /// Album type - ‘album’, ‘single’, ‘appears_on’, ‘compilation’
 #[derive(Clone, Serialize, Deserialize, Copy, PartialEq, Eq, Debug)]
 #[serde(rename_all = "snake_case")]
@@ -49,14 +19,14 @@ pub enum AlbumType {
     Compilation,
 }
 impl FromStr for AlbumType {
-    type Err = Error;
+    type Err = Unrecognized;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "album" => Ok(AlbumType::Album),
             "single" => Ok(AlbumType::Single),
             "appears_on" => Ok(AlbumType::AppearsOn),
             "compilation" => Ok(AlbumType::Compilation),
-            _ => Err(Error::new(ErrorKind::NoEnum(s.to_owned()))),
+            _ => Err(Unrecognized(s.to_owned())),
         }
     }
 }
@@ -97,7 +67,7 @@ impl Type {
     }
 }
 impl FromStr for Type {
-    type Err = Error;
+    type Err = Unrecognized;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "artist" => Ok(Type::Artist),
@@ -107,7 +77,7 @@ impl FromStr for Type {
             "user" => Ok(Type::User),
             "show" => Ok(Type::Show),
             "episode" => Ok(Type::Episode),
-            _ => Err(Error::new(ErrorKind::NoEnum(s.to_owned()))),
+            _ => Err(Unrecognized(s.to_owned())),
         }
     }
 }
@@ -128,12 +98,12 @@ impl AdditionalType {
     }
 }
 impl FromStr for AdditionalType {
-    type Err = Error;
+    type Err = Unrecognized;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "track" => Ok(AdditionalType::Track),
             "episode" => Ok(AdditionalType::Episode),
-            _ => Err(Error::new(ErrorKind::NoEnum(s.to_owned()))),
+            _ => Err(Unrecognized(s.to_owned())),
         }
     }
 }
@@ -157,14 +127,14 @@ impl CurrentlyPlayingType {
     }
 }
 impl FromStr for CurrentlyPlayingType {
-    type Err = Error;
+    type Err = Unrecognized;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "track" => Ok(CurrentlyPlayingType::Track),
             "episode" => Ok(CurrentlyPlayingType::Episode),
             "ad" => Ok(CurrentlyPlayingType::Advertisement),
             "unknown" => Ok(CurrentlyPlayingType::Unknown),
-            _ => Err(Error::new(ErrorKind::NoEnum(s.to_owned()))),
+            _ => Err(Unrecognized(s.to_owned())),
         }
     }
 }
@@ -201,7 +171,7 @@ impl DisallowKey {
     }
 }
 impl FromStr for DisallowKey {
-    type Err = Error;
+    type Err = Unrecognized;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "interrupting_playback" => Ok(DisallowKey::InterruptingPlayback),
@@ -214,7 +184,7 @@ impl FromStr for DisallowKey {
             "toggling_shuffle" => Ok(DisallowKey::TogglingShuffle),
             "toggling_repeat_track" => Ok(DisallowKey::TogglingRepeatTrack),
             "transferring_playback" => Ok(DisallowKey::TransferringPlayback),
-            _ => Err(Error::new(ErrorKind::NoEnum(s.to_owned()))),
+            _ => Err(Unrecognized(s.to_owned())),
         }
     }
 }
@@ -239,13 +209,13 @@ impl TimeRange {
 }
 
 impl FromStr for TimeRange {
-    type Err = Error;
+    type Err = Unrecognized;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "long_term" => Ok(TimeRange::LongTerm),
             "medium_term" => Ok(TimeRange::MediumTerm),
             "short_term" => Ok(TimeRange::ShortTerm),
-            _ => Err(Error::new(ErrorKind::NoEnum(s.to_owned()))),
+            _ => Err(Unrecognized(s.to_owned())),
         }
     }
 }
@@ -271,13 +241,13 @@ impl RepeatState {
     }
 }
 impl FromStr for RepeatState {
-    type Err = Error;
+    type Err = Unrecognized;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "off" => Ok(RepeatState::Off),
             "track" => Ok(RepeatState::Track),
             "context" => Ok(RepeatState::Context),
-            _ => Err(Error::new(ErrorKind::NoEnum(s.to_owned()))),
+            _ => Err(Unrecognized(s.to_owned())),
         }
     }
 }
@@ -296,11 +266,11 @@ impl IncludeExternal {
     }
 }
 impl FromStr for IncludeExternal {
-    type Err = Error;
+    type Err = Unrecognized;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "audio" => Ok(IncludeExternal::Audio),
-            _ => Err(Error::new(ErrorKind::NoEnum(s.to_owned()))),
+            _ => Err(Unrecognized(s.to_owned())),
         }
     }
 }
@@ -330,7 +300,7 @@ impl SearchType {
     }
 }
 impl FromStr for SearchType {
-    type Err = Error;
+    type Err = Unrecognized;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "artist" => Ok(SearchType::Artist),
@@ -339,7 +309,7 @@ impl FromStr for SearchType {
             "playlist" => Ok(SearchType::Playlist),
             "show" => Ok(SearchType::Show),
             "episode" => Ok(SearchType::Episode),
-            _ => Err(Error::new(ErrorKind::NoEnum(s.to_owned()))),
+            _ => Err(Unrecognized(s.to_owned())),
         }
     }
 }
@@ -424,4 +394,49 @@ impl AsRef<str> for Scope {
 pub enum PlayingItem {
     Track(track::FullTrack),
     Episode(show::FullEpisode),
+}
+
+/// https://developer.spotify.com/documentation/web-api/reference/browse/get-recommendations/#tuneable-track-attributes
+#[derive(Clone, Debug)]
+pub enum TrackAttribute {
+    Acousticness(f32),
+    Danceability(f32),
+    DurationMs(usize),
+    Energy(f32),
+    Instrumentalness(f32),
+    Key(u8),
+    Liveness(f32),
+    Loudness(f32),
+    Mode(u8),
+    Popularity(u8),
+    Speechiness(f32),
+    Tempo(f32),
+    TimeSignature(u8),
+    Valence(f32),
+}
+
+impl TrackAttribute {
+    pub fn fmt_prefixed(&self, prefix: &str) -> String {
+        let param = match self {
+            TrackAttribute::Acousticness(v) => format!("acousticness={}", v),
+            TrackAttribute::Danceability(v) => format!("danceability={}", v),
+            TrackAttribute::DurationMs(v) => format!("duration_ms={}", v),
+            TrackAttribute::Energy(v) => format!("energy={}", v),
+            TrackAttribute::Instrumentalness(v) => format!("instrumentalness={}", v),
+            TrackAttribute::Key(v) => format!("key={}", v),
+            TrackAttribute::Liveness(v) => format!("liveness={}", v),
+            TrackAttribute::Loudness(v) => format!("loudness={}", v),
+            TrackAttribute::Mode(v) => format!("mode={}", v),
+            TrackAttribute::Popularity(v) => format!("popularity={}", v),
+            TrackAttribute::Speechiness(v) => format!("speechiness={}", v),
+            TrackAttribute::Tempo(v) => format!("tempo={}", v),
+            TrackAttribute::TimeSignature(v) => format!("time_signature={}", v),
+            TrackAttribute::Valence(v) => format!("valence={}", v),
+        };
+
+        // TODO: Is there a more efficient way to handle this?
+        let mut p = prefix.to_owned();
+        p.push_str(param.as_str());
+        p
+    }
 }

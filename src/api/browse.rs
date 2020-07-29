@@ -4,9 +4,10 @@ use crate::model::category::Category;
 use crate::model::page::Page;
 use crate::model::playlist::{FeaturedPlaylists, SimplifiedPlaylist};
 use crate::model::recommend::Recommendations;
+use crate::model::senum::TrackAttribute;
 use crate::Result;
 use http_types::{Method, Request, Url};
-use std::{collections::HashMap, borrow::Borrow};
+use std::borrow::Borrow;
 
 pub async fn category_with_options<C: SpotifyClient + ?Sized>(
     client: &C,
@@ -134,8 +135,55 @@ pub async fn new_releases<C: SpotifyClient + ?Sized>(client: &C) -> Result<NewRe
     new_releases_with_options(client, None, None, None).await
 }
 
+pub async fn recommendations_with_options<
+    C: SpotifyClient + ?Sized,
+    B1: Borrow<str>,
+    B2: Borrow<str>,
+    B3: Borrow<str>,
+>(
+    client: &C,
+    limit: Option<usize>,
+    market: Option<&str>,
+    max_attributes: &[TrackAttribute],
+    min_attributes: &[TrackAttribute],
+    target_attributes: &[TrackAttribute],
+    seed_artists: Option<&[B1]>,
+    seed_genres: Option<&[B2]>,
+    seed_tracks: Option<&[B3]>,
+) -> Result<Recommendations> {
+    // UNWRAP: Known-valid URL
+    let mut url = Url::parse("https://api.spotify.com/v1/recommendations").unwrap();
 
-// TODO: Recommendations call
-// Want a "track attributes" enum that can handle both what attributes are available
-// and whether they're int or float. Can then pass in attributes as a list of enum,
-// rather than a HashMap.
+    set_query_param!(url, limit);
+    set_query_param!(url, market);
+
+    for a in max_attributes {
+        let param = a.fmt_prefixed("max_");
+        url.set_query(Some(param.as_str()));
+    }
+
+    for a in min_attributes {
+        let param = a.fmt_prefixed("min_");
+        url.set_query(Some(param.as_str()));
+    }
+
+    for a in target_attributes {
+        let param = a.fmt_prefixed("target_");
+        url.set_query(Some(param.as_str()));
+    }
+
+    if let Some(seed_artists) = seed_artists {
+        set_query_param_joined!(url, seed_artists);
+    }
+
+    if let Some(seed_genres) = seed_genres {
+        set_query_param_joined!(url, seed_genres);
+    }
+
+    if let Some(seed_tracks) = seed_tracks {
+        set_query_param_joined!(url, seed_tracks);
+    }
+
+    let req = Request::new(Method::Get, url);
+    client.send_authorized(req).deserialize_response().await
+}
