@@ -31,7 +31,17 @@ pub mod artists;
 pub mod auth;
 pub mod browse;
 pub mod client;
+pub mod episodes;
+pub mod follow;
+pub mod library;
 pub mod pager;
+pub mod personalization;
+pub mod player;
+pub mod playlists;
+pub mod search;
+pub mod shows;
+pub mod tracks;
+pub mod users;
 
 pub use client::{ClientExt, SpotifyClient};
 

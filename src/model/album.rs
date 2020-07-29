@@ -72,9 +72,11 @@ pub struct FullAlbums {
 }
 
 ///[link to get list new releases](https://developer.spotify.com/web-api/get-list-new-releases/)
-/// Note that despite Spotify's claims to include a "message" attribute, it doesn't actually exist.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewReleases {
+    // Note that despite Spotify's claims to include a "message" attribute, it doesn't actually
+    // exist in the API calls currently. The attribute is present here just in case.
+    pub message: Option<String>,
     pub albums: Page<SimplifiedAlbum>,
 }
 
