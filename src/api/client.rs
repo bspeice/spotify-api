@@ -82,6 +82,8 @@ where
         let auth = format!("Bearer {}", access_token);
         req.insert_header(AUTHORIZATION, auth);
 
+        // TODO: Content-Type header?
+
         self.send(req)
     }
 }

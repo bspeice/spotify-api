@@ -108,7 +108,7 @@ pub struct FullEpisode {
     pub uri: String,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SeveralEpisodes {
+pub struct FullEpisodes {
     pub episodes: Vec<FullEpisode>,
 }
 

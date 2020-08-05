@@ -17,6 +17,9 @@ macro_rules! set_query_param {
     };
 }
 
+// NOTE: Right now, there are some pretty strict implicit requirements for type of `$param`;
+// it works best when `$param: &[Borrow<str>]`. This should eventually be relaxed to work with
+// `$param: IntoIter<Item = AsRef<str>>`.
 macro_rules! set_query_param_joined {
     ($url:expr, $param:ident) => {
         if !$param.is_empty() {

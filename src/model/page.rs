@@ -32,6 +32,10 @@ mod pager {
     }
 }
 
+// TODO: IntoStream for `CursorBasedPage<T>`
+// Will require some kind of trait to handle Page vs. CursorBasedPage vs. al the other CursorBased*
+// objects used (see artist::CursorPageFullArtists)
+
 /// cursor based page
 ///[cursor based paging object](https://developer.spotify.com/web-api/object-model/#cursor-based-paging-object)
 #[derive(Clone, Debug, Serialize, Deserialize)]
