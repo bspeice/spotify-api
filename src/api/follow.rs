@@ -1,5 +1,5 @@
 use crate::api::client::{ClientExt, SpotifyClient};
-use crate::model::artist::CursorPageFullArtists;
+use crate::model::artist::FollowedArtists;
 use crate::Result;
 use http_types::{Method, Request, Url};
 use std::borrow::Borrow;
@@ -110,7 +110,7 @@ pub async fn user_followed_artists_with_options<C: SpotifyClient + ?Sized>(
     client: &C,
     limit: Option<usize>,
     after: Option<&str>,
-) -> Result<CursorPageFullArtists> {
+) -> Result<FollowedArtists> {
     // UNWRAP: Known-valid URL
     let mut url = Url::parse("https://api.spotify.com/v1/me/following?type=artist").unwrap();
 
@@ -123,6 +123,6 @@ pub async fn user_followed_artists_with_options<C: SpotifyClient + ?Sized>(
 
 pub async fn user_followed_artists<C: SpotifyClient + ?Sized>(
     client: &C,
-) -> Result<CursorPageFullArtists> {
+) -> Result<FollowedArtists> {
     user_followed_artists_with_options(client, None, None).await
 }

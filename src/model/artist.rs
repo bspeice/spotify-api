@@ -46,6 +46,6 @@ pub struct FullArtists {
 
 /// Full Artists vector wrapped by cursor-based-page object
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CursorPageFullArtists {
+pub struct FollowedArtists {
     pub artists: CursorBasedPage<FullArtist>,
 }
