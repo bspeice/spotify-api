@@ -51,8 +51,9 @@ pub async fn users_follow_playlist<C: SpotifyClient + ?Sized, B: Borrow<str>>(
     client.send_authorized(req).deserialize_response().await
 }
 
-async fn add_follows<C: SpotifyClient + ?Sized, B: Borrow<str>>(
+async fn modify_follows<C: SpotifyClient + ?Sized, B: Borrow<str>>(
     client: &C,
+    method: Method,
     type_: &str,
     ids: &[B],
 ) -> Result<()> {
@@ -62,7 +63,7 @@ async fn add_follows<C: SpotifyClient + ?Sized, B: Borrow<str>>(
     url.set_query(Some(type_));
     set_query_param_joined!(url, ids);
 
-    let req = Request::new(Method::Put, url);
+    let req = Request::new(method, url);
     client.send_authorized(req).await?;
     Ok(())
 }
@@ -71,14 +72,14 @@ pub async fn follow_artists<C: SpotifyClient + ?Sized, B: Borrow<str>>(
     client: &C,
     ids: &[B],
 ) -> Result<()> {
-    add_follows(client, "type=artist", ids).await
+    modify_follows(client, Method::Put, "type=artist", ids).await
 }
 
 pub async fn follow_users<C: SpotifyClient + ?Sized, B: Borrow<str>>(
     client: &C,
     ids: &[B],
 ) -> Result<()> {
-    add_follows(client, "type=user", ids).await
+    modify_follows(client, Method::Put, "type=user", ids).await
 }
 
 pub async fn follow_playlist_with_options<C: SpotifyClient + ?Sized>(
@@ -125,4 +126,18 @@ pub async fn user_followed_artists<C: SpotifyClient + ?Sized>(
     client: &C,
 ) -> Result<FollowedArtists> {
     user_followed_artists_with_options(client, None, None).await
+}
+
+pub async fn unfollow_artists<C: SpotifyClient + ?Sized, B: Borrow<str>>(
+    client: &C,
+    ids: &[B],
+) -> Result<()> {
+    modify_follows(client, Method::Delete, "type=artist", ids).await
+}
+
+pub async fn unfollow_users<C: SpotifyClient + ?Sized, B: Borrow<str>>(
+    client: &C,
+    ids: &[B],
+) -> Result<()> {
+    modify_follows(client, Method::Delete, "type=user", ids).await
 }
