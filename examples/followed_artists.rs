@@ -19,9 +19,7 @@ struct Opt {
 
 #[async_std::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let Opt {
-        token_path,
-    } = Opt::from_args();
+    let Opt { token_path } = Opt::from_args();
 
     let token_cache = FileCache::new(token_path)?;
     let client = BasicSpotifyClient::new(H1Client::new(), token_cache);

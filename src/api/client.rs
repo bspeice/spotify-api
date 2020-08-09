@@ -83,6 +83,7 @@ where
         req.insert_header(AUTHORIZATION, auth);
 
         // TODO: Content-Type header?
+        // Likely should only be set if the body is non-empty
 
         self.send(req)
     }
