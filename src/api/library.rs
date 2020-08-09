@@ -123,7 +123,10 @@ pub async fn library_remove_albums<C: SpotifyClient + ?Sized, B: Borrow<str>>(
     Ok(())
 }
 
-pub async fn library_remove_shows<C: SpotifyClient + ?Sized, B: Borrow<str>>(client: &C, ids: &[B]) -> Result<()> {
+pub async fn library_remove_shows<C: SpotifyClient + ?Sized, B: Borrow<str>>(
+    client: &C,
+    ids: &[B],
+) -> Result<()> {
     // UNWRAP: Known-valid URL
     let mut url = Url::parse("https://api.spotify.com/v1/me/shows").unwrap();
 
@@ -134,7 +137,10 @@ pub async fn library_remove_shows<C: SpotifyClient + ?Sized, B: Borrow<str>>(cli
     Ok(())
 }
 
-pub async fn library_remove_tracks<C: SpotifyClient + ?Sized, B: Borrow<str>>(client: &C, ids: &[B]) -> Result<()> {
+pub async fn library_remove_tracks<C: SpotifyClient + ?Sized, B: Borrow<str>>(
+    client: &C,
+    ids: &[B],
+) -> Result<()> {
     // UNWRAP: Known-valid URL
     let mut url = Url::parse("https://api.spotify.com/v1/me/tracks").unwrap();
 
@@ -159,7 +165,10 @@ pub async fn library_save_albums<C: SpotifyClient + ?Sized, B: Borrow<str>>(
     Ok(())
 }
 
-pub async fn library_save_shows<C: SpotifyClient + ?Sized, B: Borrow<str>>(client: &C, ids: &[B]) -> Result<()> {
+pub async fn library_save_shows<C: SpotifyClient + ?Sized, B: Borrow<str>>(
+    client: &C,
+    ids: &[B],
+) -> Result<()> {
     // UNWRAP: Known-valid URL
     let mut url = Url::parse("https://api.spotify.com/v1/me/shows").unwrap();
 
@@ -170,7 +179,10 @@ pub async fn library_save_shows<C: SpotifyClient + ?Sized, B: Borrow<str>>(clien
     Ok(())
 }
 
-pub async fn library_save_tracks<C: SpotifyClient + ?Sized, B: Borrow<str>>(client: &C, ids: &[B]) -> Result<()> {
+pub async fn library_save_tracks<C: SpotifyClient + ?Sized, B: Borrow<str>>(
+    client: &C,
+    ids: &[B],
+) -> Result<()> {
     // UNWRAP: Known-valid URL
     let mut url = Url::parse("https://api.spotify.com/v1/me/tracks").unwrap();
 
